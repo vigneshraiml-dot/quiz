@@ -1,15 +1,35 @@
 import streamlit as st
 import time
-import base64
 from pathlib import Path
 
-# --- ⚙️ CONFIGURATION ---
+# Configuration
 QUIZ_TITLE = "AthenaHealth & AI Quiz"
-QUIZ_DURATION = 600  # 10 minutes for all sections
+QUIZ_DURATION = 600  # 10 minutes
 
-# --- 📝 ALL QUIZ SECTIONS ---
+# Initialize session state
+def init_session():
+    if 'page' not in st.session_state:
+        st.session_state.page = 'home'
+    if 'current_section' not in st.session_state:
+        st.session_state.current_section = None
+    if 'scores' not in st.session_state:
+        st.session_state.scores = {'mcq': 0, 'pictorial': 0, 'crossword': 0}
+    if 'q_index' not in st.session_state:
+        st.session_state.q_index = 0
+    if 'start_time' not in st.session_state:
+        st.session_state.start_time = 0
+    if 'answers' not in st.session_state:
+        st.session_state.answers = {}
+    if 'name' not in st.session_state:
+        st.session_state.name = ""
+    if 'email' not in st.session_state:
+        st.session_state.email = ""
 
-# Section 1: athenahealth MCQs
+# Page config
+st.set_page_config(page_title=QUIZ_TITLE, page_icon="📚", layout="wide")
+init_session()
+
+# MCQ Questions
 mcq_questions = [
     {"question": "How does athenahealth describe its flagship product, athenaOne?", 
      "options": ["A standalone billing tool", "An integrated, AI-native healthcare solution", "A social media app for surgeons", "A simple calendar app"], 
@@ -40,72 +60,80 @@ mcq_questions = [
      "answer": "A Customer Success Manager"},
     {"question": "What happens to your data if you decide to leave athenaOne?", 
      "options": ["They delete it immediately", "They keep it hostage", "You can take all your data with you", "They print it on a giant scroll"], 
-     "answer": "You can take all your data with you"},
+     "answer": "You can take all your data with you"}
 ]
 
-# Section 2: Pictorial Charades (AI Concepts)
+# Pictorial Questions
 pictorial_questions = [
-    {"question": "🤖💡 What's the big idea here? (Robot with lightbulb)", 
+    {"question": "What AI concept does this image represent?", 
+     "image": "assets/robot_lightbulb.png",
      "options": ["A new lightbulb design", "Artificial Intelligence (AI)", "A robot electrician", "A metal toy"], 
-     "answer": "Artificial Intelligence (AI)", "hint": "The robot with an idea (lightbulb) is the classic symbol!"},
-    {"question": "☁️💾 Where is all that data going? (Cloud raining into server)", 
+     "answer": "Artificial Intelligence (AI)", "hint": "The robot with an idea!"},
+    {"question": "What technology is shown here?", 
+     "image": "assets/cloud_server.png",
      "options": ["A rainy day for computers", "Data Mining", "Cloud Computing", "A broken server"], 
-     "answer": "Cloud Computing", "hint": "The cloud raining data into a server!"},
-    {"question": "🚗👻 Who's driving this thing? (Car with no driver)", 
+     "answer": "Cloud Computing", "hint": "Data in the cloud!"},
+    {"question": "What does this vehicle represent?", 
+     "image": "assets/self_driving_car.png",
      "options": ["A ghost driver", "A parked car", "Self-driving car (Autonomous Vehicle)", "A very dangerous driver"], 
-     "answer": "Self-driving car (Autonomous Vehicle)", "hint": "No driver needed, the AI is at the wheel!"},
-    {"question": "🥽🌐 What kind of reality is this? (Person with headset)", 
+     "answer": "Self-driving car (Autonomous Vehicle)", "hint": "AI at the wheel!"},
+    {"question": "What type of reality is this?", 
+     "image": "assets/vr_headset.png",
      "options": ["Augmented Reality", "Virtual Reality (VR)", "A new kind of sunglasses", "Someone having a vivid dream"], 
-     "answer": "Virtual Reality (VR)", "hint": "The headset and reaching pose are dead giveaways!"},
-    {"question": "🧠💻 What is this brainy-looking chip?", 
+     "answer": "Virtual Reality (VR)", "hint": "Immersive experience!"},
+    {"question": "What AI component is this?", 
+     "image": "assets/neural_network.png",
      "options": ["A super-smart CPU", "A Neural Network", "A computer virus", "A cyborg brain"], 
-     "answer": "A Neural Network", "hint": "The brain structure on a chip!"},
-    {"question": "📚🗣️ What kind of AI is this big book representing?", 
+     "answer": "A Neural Network", "hint": "Brain-inspired computing!"},
+    {"question": "What type of AI model is represented?", 
+     "image": "assets/llm_book.png",
      "options": ["A digital library", "A Large Language Model (LLM)", "An e-book reader", "An audiobook"], 
-     "answer": "A Large Language Model (LLM)", "hint": "Like ChatGPT, trained on huge amounts of text!"},
-    {"question": "👤🔲 What technology is being used on this person's face?", 
+     "answer": "A Large Language Model (LLM)", "hint": "Like ChatGPT!"},
+    {"question": "What technology is being used?", 
+     "image": "assets/facial_recognition.png",
      "options": ["A new Snapchat filter", "Eye-tracking software", "Facial Recognition", "A virtual makeup app"], 
-     "answer": "Facial Recognition", "hint": "The digital grid scanning the face!"},
-    {"question": "📱⌨️ What is the phone doing to help the user type?", 
+     "answer": "Facial Recognition", "hint": "Face scanning!"},
+    {"question": "What feature is helping the user type?", 
+     "image": "assets/predictive_text.png",
      "options": ["Autocorrecting a mistake", "Using Predictive Text", "Translating a language", "Sending an emoji"], 
-     "answer": "Using Predictive Text", "hint": "Suggested words above the keyboard!"},
-    {"question": "🚁📷 What is this flying device that often uses AI for navigation?", 
+     "answer": "Using Predictive Text", "hint": "Text suggestions!"},
+    {"question": "What flying device uses AI?", 
+     "image": "assets/drone.png",
      "options": ["A remote-controlled helicopter", "A Drone (UAV)", "A small airplane", "A flying camera"], 
-     "answer": "A Drone (UAV)", "hint": "Unmanned Aerial Vehicles use AI for autonomous flight!"},
-    {"question": "🔊🏠 What is this common household device that listens to your commands?", 
+     "answer": "A Drone (UAV)", "hint": "Unmanned flight!"},
+    {"question": "What smart home device is this?", 
+     "image": "assets/smart_assistant.png",
      "options": ["A Bluetooth speaker", "A WiFi router", "A Smart Home Assistant", "An alarm clock"], 
-     "answer": "A Smart Home Assistant", "hint": "Hey Alexa, Hey Google, Hey Siri!"},
+     "answer": "A Smart Home Assistant", "hint": "Voice activated!"}
 ]
 
-# Section 3: Crossword Clues
+# Crossword Questions
 crossword_questions = [
-    {"question": "ACROSS 1: 'I'm the friendly computer program you're chatting with. I don't have a body, but I love to chat!' (7 Letters)", 
-     "options": ["CHATBOT", "PROGRAM", "ANDROID", "WEBSITE"], "answer": "CHATBOT", "category": "across"},
-    {"question": "ACROSS 2: 'Oops! This is what happens when an AI makes up a fact but sounds super confident about it.' (11 Letters)", 
-     "options": ["HALLUCINATE", "IMAGINATION", "FABRICATION", "CALCULATION"], "answer": "HALLUCINATE", "category": "across"},
-    {"question": "ACROSS 3: 'The favorite coding language of AI developers. Shares its name with a large, slithery reptile.' (6 Letters)", 
-     "options": ["PYTHON", "COBRAS", "PASCAL", "GOLANG"], "answer": "PYTHON", "category": "across"},
-    {"question": "ACROSS 4: 'The text you type to get the AI to do something. The better this is, the better your answer!' (6 Letters)", 
-     "options": ["PROMPT", "INPUTS", "ORDERS", "SIGNAL"], "answer": "PROMPT", "category": "across"},
-    {"question": "ACROSS 5: 'I'm trained on data to make predictions. I am an AI _____.' (5 Letters)", 
-     "options": ["MODEL", "BRAIN", "AGENT", "SMART"], "answer": "MODEL", "category": "across"},
-    {"question": "DOWN 6: 'This is what AI eats for breakfast, lunch, and dinner. Without terabytes of this, AI learns nothing!' (4 Letters)", 
-     "options": ["DATA", "CODE", "WIFI", "BITS"], "answer": "DATA", "category": "down"},
-    {"question": "DOWN 7: 'Beep boop! I might build your car, vacuum your floor, or dance in a viral video. I have a physical body.' (5 Letters)", 
-     "options": ["ROBOT", "DROID", "CYBORG", "CLONE"], "answer": "ROBOT", "category": "down"},
-    {"question": "DOWN 8: 'If an AI only likes dogs because it was never shown a cat, it has this. When the computer plays favorites.' (4 Letters)", 
-     "options": ["BIAS", "HATE", "LOVE", "FEAR"], "answer": "BIAS", "category": "down"},
-    {"question": "DOWN 9: 'Computer ______ is how an autonomous car sees the stop sign and the squirrel on the road.' (6 Letters)", 
-     "options": ["VISION", "SENSOR", "CAMERA", "SCREEN"], "answer": "VISION", "category": "down"},
-    {"question": "DOWN 10: 'This word goes before Learning when you have many layers of neural networks. It's not shallow, it's...?' (4 Letters)", 
-     "options": ["DEEP", "WIDE", "HUGE", "LONG"], "answer": "DEEP", "category": "down"},
+    {"question": "ACROSS 1: Computer program for chatting (7 Letters)", 
+     "options": ["CHATBOT", "PROGRAM", "ANDROID", "WEBSITE"], "answer": "CHATBOT"},
+    {"question": "ACROSS 2: When AI makes up facts (11 Letters)", 
+     "options": ["HALLUCINATE", "IMAGINATION", "FABRICATION", "CALCULATION"], "answer": "HALLUCINATE"},
+    {"question": "ACROSS 3: Snake-named programming language (6 Letters)", 
+     "options": ["PYTHON", "COBRAS", "PASCAL", "GOLANG"], "answer": "PYTHON"},
+    {"question": "ACROSS 4: Text input to AI (6 Letters)", 
+     "options": ["PROMPT", "INPUTS", "ORDERS", "SIGNAL"], "answer": "PROMPT"},
+    {"question": "ACROSS 5: AI _____ (5 Letters)", 
+     "options": ["MODEL", "BRAIN", "AGENT", "SMART"], "answer": "MODEL"},
+    {"question": "DOWN 6: AI's food (4 Letters)", 
+     "options": ["DATA", "CODE", "WIFI", "BITS"], "answer": "DATA"},
+    {"question": "DOWN 7: Physical AI body (5 Letters)", 
+     "options": ["ROBOT", "DROID", "CYBORG", "CLONE"], "answer": "ROBOT"},
+    {"question": "DOWN 8: AI unfairness (4 Letters)", 
+     "options": ["BIAS", "HATE", "LOVE", "FEAR"], "answer": "BIAS"},
+    {"question": "DOWN 9: Computer ______ (6 Letters)", 
+     "options": ["VISION", "SENSOR", "CAMERA", "SCREEN"], "answer": "VISION"},
+    {"question": "DOWN 10: ____ Learning (4 Letters)", 
+     "options": ["DEEP", "WIDE", "HUGE", "LONG"], "answer": "DEEP"}
 ]
 
-# --- CROSSWORD SVG ---
-CROSSWORD_SVG = """
-<svg width="600" height="450" xmlns="http://www.w3.org/2000/svg">
+# Crossword SVG
+CROSSWORD_SVG = """<svg width="600" height="450" xmlns="http://www.w3.org/2000/svg">
   <rect width="100%" height="100%" fill="#f9f9f9"/>
-  
   <g transform="translate(20, 180)"> <rect x="0" y="0" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
     <text x="5" y="15" font-family="Arial" font-size="12">3</text>
     <rect x="40" y="0" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
@@ -154,172 +182,192 @@ CROSSWORD_SVG = """
   <rect x="380" y="140" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
   <rect x="420" y="140" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
   <rect x="460" y="140" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
-</svg>
-"""
+</svg>"""
 
-# --- PAGE CONFIG ---
-st.set_page_config(page_title=QUIZ_TITLE, page_icon="📚", layout="wide")
-
-# --- SESSION STATE ---
-def init_session():
-    if 'page' not in st.session_state: st.session_state.page = 'home'
-    if 'scores' not in st.session_state: st.session_state.scores = {'mcq': 0, 'pictorial': 0, 'crossword': 0}
-    if 'q_index' not in st.session_state: st.session_state.q_index = 0
-    if 'current_section' not in st.session_state: st.session_state.current_section = None
-    if 'start_time' not in st.session_state: st.session_state.start_time = 0
-    if 'answers' not in st.session_state: st.session_state.answers = {}
-    if 'name' not in st.session_state: st.session_state.name = ""
-    if 'email' not in st.session_state: st.session_state.email = ""
-
-init_session()
-
-def get_current_questions():
-    if st.session_state.current_section == 'mcq':
+# Helper function
+def get_questions(section):
+    if section == 'mcq':
         return mcq_questions
-    elif st.session_state.current_section == 'pictorial':
+    elif section == 'pictorial':
         return pictorial_questions
-    else:
-        return crossword_questions
+    return crossword_questions
 
-def get_section_info():
-    sections = {
-        'mcq': {'name': 'AthenaHealth MCQ', 'icon': '🏥', 'color': 'badge-mcq', 'total': len(mcq_questions)},
-        'pictorial': {'name': 'Pictorial Charades', 'icon': '🎨', 'color': 'badge-pictorial', 'total': len(pictorial_questions)},
-        'crossword': {'name': 'AI Crossword', 'icon': '🧩', 'color': 'badge-crossword', 'total': len(crossword_questions)}
-    }
-    return sections[st.session_state.current_section]
-
-def next_section():
-    if st.session_state.current_section == 'mcq':
-        st.session_state.current_section = 'pictorial'
-        st.session_state.q_index = 0
-    elif st.session_state.current_section == 'pictorial':
-        st.session_state.current_section = 'crossword'
-        st.session_state.q_index = 0
-    else:
-        st.session_state.step = 'finish'
-
-# --- 🎯 LOGIN SCREEN ---
-if st.session_state.step == 'login':
-    st.markdown('<div class="main-card">', unsafe_allow_html=True)
-    st.markdown(f'<h1 class="quiz-title">🚀 {QUIZ_TITLE}</h1>', unsafe_allow_html=True)
+# Home Page
+if st.session_state.page == 'home':
+    st.title("📚 " + QUIZ_TITLE)
+    st.divider()
     
-    st.markdown("""
-    <div style="text-align:center; margin: 2rem 0;">
-        <p style="font-size: 1.1rem; color: #4a5568;">Test your knowledge across <b>3 exciting sections</b>!</p>
-        <div style="margin: 1.5rem 0;">
-            <span class="section-badge badge-mcq">🏥 AthenaHealth MCQ (10Q)</span>
-            <span class="section-badge badge-pictorial">🎨 Pictorial Charades (10Q)</span>
-            <span class="section-badge badge-crossword">🧩 AI Crossword (10Q)</span>
-        </div>
-        <p style="color: #718096; font-size: 0.9rem;">⏱️ Total time: 10 minutes | 📝 30 questions</p>
-    </div>
-    """, unsafe_allow_html=True)
+    col1, col2 = st.columns([2, 1])
     
-    with st.form("login_form"):
-        email = st.text_input("📧 Enter your Email Address", placeholder="your.email@example.com")
-        name = st.text_input("👤 Enter your Name", placeholder="Your Name")
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            submitted = st.form_submit_button("🎮 Start Quiz", use_container_width=True)
+    with col1:
+        st.header("Welcome to the Quiz!")
+        st.write("Test your knowledge across three exciting sections:")
         
-        if submitted:
-            if email and name:
-                st.session_state.email = email
+        st.info("""
+        **📝 Section 1: AthenaHealth MCQ**  
+        10 questions about athenaOne healthcare platform
+        
+        **🎨 Section 2: Pictorial Charades**  
+        10 visual puzzles about AI concepts
+        
+        **🧩 Section 3: AI Crossword**  
+        10 crossword clues about AI terminology
+        """)
+        
+        st.divider()
+        st.subheader("Enter Your Details")
+        
+        name = st.text_input("Name")
+        email = st.text_input("Email")
+        
+        if st.button("Start Quiz", type="primary", use_container_width=True):
+            if name and email:
                 st.session_state.name = name
+                st.session_state.email = email
                 st.session_state.start_time = time.time()
-                st.session_state.step = 'quiz'
+                st.session_state.page = 'section_select'
                 st.rerun()
             else:
-                st.warning("⚠️ Please fill in both fields!")
+                st.error("Please enter both name and email")
     
-    st.markdown('</div>', unsafe_allow_html=True)
+    with col2:
+        st.subheader("Quiz Rules")
+        st.warning("""
+        ⏱️ **Time Limit:** 10 minutes total
+        
+        📊 **Total Questions:** 30
+        
+        ✅ **Scoring:** 1 point per correct answer
+        
+        🔄 **Navigation:** Move between sections
+        """)
 
-# --- 📝 QUIZ SCREEN ---
-elif st.session_state.step == 'quiz':
-    # Timer Logic
-    elapsed = time.time() - st.session_state.start_time
-    remaining = max(0, QUIZ_DURATION - elapsed)
+# Section Selection Page
+elif st.session_state.page == 'section_select':
+    st.title("📋 Select a Section")
+    st.divider()
     
-    if remaining <= 0:
-        st.session_state.step = 'finish'
-        st.rerun()
-    
-    questions = get_current_questions()
-    section_info = get_section_info()
-    total_q = len(mcq_questions) + len(pictorial_questions) + len(crossword_questions)
-    
-    # Calculate overall progress
-    overall_progress = 0
-    if st.session_state.current_section == 'mcq':
-        overall_progress = st.session_state.q_index
-    elif st.session_state.current_section == 'pictorial':
-        overall_progress = len(mcq_questions) + st.session_state.q_index
-    else:
-        overall_progress = len(mcq_questions) + len(pictorial_questions) + st.session_state.q_index
-    
-    st.markdown('<div class="main-card">', unsafe_allow_html=True)
-    
-    # Header with Timer
-    col1, col2, col3 = st.columns([2, 3, 2])
-    with col1:
+    # Timer
+    if st.session_state.start_time:
+        elapsed = time.time() - st.session_state.start_time
+        remaining = max(0, QUIZ_DURATION - elapsed)
         minutes = int(remaining // 60)
         seconds = int(remaining % 60)
-        timer_class = "timer-critical" if remaining < 60 else ""
-        st.markdown(f'<div style="text-align:center;"><span style="font-size:2rem; font-weight:700;" class="{timer_class}">⏱️ {minutes:02d}:{seconds:02d}</span></div>', unsafe_allow_html=True)
+        
+        if remaining <= 0:
+            st.session_state.page = 'results'
+            st.rerun()
+        
+        st.sidebar.metric("⏱️ Time", f"{minutes:02d}:{seconds:02d}")
+        st.sidebar.metric("📊 Total Score", f"{sum(st.session_state.scores.values())}/30")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.subheader("📝 MCQ")
+        st.write("AthenaHealth questions")
+        st.metric("Score", f"{st.session_state.scores['mcq']}/10")
+        if st.button("Start MCQ", use_container_width=True):
+            st.session_state.current_section = 'mcq'
+            st.session_state.q_index = 0
+            st.session_state.page = 'quiz'
+            st.rerun()
     
     with col2:
-        st.markdown(f'<span class="section-badge {section_info["color"]}">{section_info["icon"]} {section_info["name"]}</span>', unsafe_allow_html=True)
+        st.subheader("🎨 Pictorial")
+        st.write("AI concept puzzles")
+        st.metric("Score", f"{st.session_state.scores['pictorial']}/10")
+        if st.button("Start Pictorial", use_container_width=True):
+            st.session_state.current_section = 'pictorial'
+            st.session_state.q_index = 0
+            st.session_state.page = 'quiz'
+            st.rerun()
     
     with col3:
-        current_score = sum(st.session_state.scores.values())
-        st.markdown(f'<div style="text-align:center;"><span style="font-size:1.5rem; font-weight:600;">🏆 {current_score}</span></div>', unsafe_allow_html=True)
+        st.subheader("🧩 Crossword")
+        st.write("AI terminology")
+        st.metric("Score", f"{st.session_state.scores['crossword']}/10")
+        if st.button("Start Crossword", use_container_width=True):
+            st.session_state.current_section = 'crossword'
+            st.session_state.q_index = 0
+            st.session_state.page = 'quiz'
+            st.rerun()
+    
+    st.divider()
+    if st.button("📊 View Results", type="primary", use_container_width=True):
+        st.session_state.page = 'results'
+        st.rerun()
+
+# Quiz Page
+elif st.session_state.page == 'quiz':
+    questions = get_questions(st.session_state.current_section)
+    
+    # Timer
+    if st.session_state.start_time:
+        elapsed = time.time() - st.session_state.start_time
+        remaining = max(0, QUIZ_DURATION - elapsed)
+        minutes = int(remaining // 60)
+        seconds = int(remaining % 60)
+        
+        if remaining <= 0:
+            st.session_state.page = 'results'
+            st.rerun()
+        
+        st.sidebar.metric("⏱️ Time", f"{minutes:02d}:{seconds:02d}")
+        st.sidebar.metric("📊 Score", f"{sum(st.session_state.scores.values())}/30")
+    
+    # Section title
+    titles = {'mcq': '📝 MCQ Section', 'pictorial': '🎨 Pictorial Section', 'crossword': '🧩 Crossword Section'}
+    st.title(titles[st.session_state.current_section])
     
     # Progress
-    st.progress((overall_progress + 1) / total_q)
-    st.caption(f"Question {overall_progress + 1} of {total_q} • Section: {st.session_state.q_index + 1}/{section_info['total']}")
+    progress = (st.session_state.q_index + 1) / len(questions)
+    st.progress(progress)
+    st.caption(f"Question {st.session_state.q_index + 1} of {len(questions)}")
+    st.divider()
     
-    # Question
     q = questions[st.session_state.q_index]
-    st.markdown(f"""
-    <div class="question-box">
-        <div class="question-text">{q['question']}</div>
-    </div>
-    """, unsafe_allow_html=True)
     
-    # Options
-    choice = st.radio("Select your answer:", q['options'], index=None, key=f"q_{st.session_state.current_section}_{st.session_state.q_index}", label_visibility="collapsed")
+    # Display based on section
+    if st.session_state.current_section == 'crossword':
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            st.subheader("Crossword Puzzle")
+            st.markdown(CROSSWORD_SVG, unsafe_allow_html=True)
+        with col2:
+            st.subheader("Question")
+            st.write(q['question'])
+            choice = st.radio("Select answer:", q['options'])
     
-    # Hint for pictorial questions
-    if st.session_state.current_section == 'pictorial' and 'hint' in q:
-        if st.checkbox("💡 Show Hint", key=f"hint_{st.session_state.q_index}"):
-            st.markdown(f'<div class="hint-box">💡 <b>Hint:</b> {q["hint"]}</div>', unsafe_allow_html=True)
+    elif st.session_state.current_section == 'pictorial':
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            # Check if image exists
+            img_path = Path(q['image'])
+            if img_path.exists():
+                st.image(str(img_path))
+            else:
+                st.info(f"🖼️ Image: {q['image']}")
+                st.caption("(Image placeholder)")
+            
+            if 'hint' in q:
+                with st.expander("💡 Hint"):
+                    st.write(q['hint'])
+        
+        with col2:
+            st.subheader("Question")
+            st.write(q['question'])
+            choice = st.radio("Select answer:", q['options'])
+    
+    else:  # MCQ
+        st.subheader("Question")
+        st.write(q['question'])
+        choice = st.radio("Select answer:", q['options'])
+    
+    st.divider()
     
     # Navigation
-    col1, col2 = st.columns(2)
-    
-    with col2:
-        is_last_q = st.session_state.q_index + 1 >= len(questions)
-        is_last_section = st.session_state.current_section == 'crossword'
-        btn_text = "🏁 Finish Quiz" if (is_last_q and is_last_section) else ("➜ Next Section" if is_last_q else "➜ Next Question")
-        
-        if st.button(btn_text, type="primary", use_container_width=True):
-            if choice:
-                # Score the answer
-                if choice == q['answer']:
-                    st.session_state.scores[st.session_state.current_section] += 1
-                
-                # Store answer
-                st.session_state.answers[f"{st.session_state.current_section}_{st.session_state.q_index}"] = choice
-                
-                # Navigate
-                if is_last_q:
-                    next_section()
-                else:
-                    st.session_state.q_index += 1
-                st.rerun()
-            else:
-                st.warning("⚠️ Please select an answer!")
+    col1, col2, col3 = st.columns(3)
     
     with col1:
         if st.session_state.q_index > 0:
@@ -327,82 +375,77 @@ elif st.session_state.step == 'quiz':
                 st.session_state.q_index -= 1
                 st.rerun()
     
-    st.markdown('</div>', unsafe_allow_html=True)
+    with col2:
+        if st.button("🏠 Menu", use_container_width=True):
+            st.session_state.page = 'section_select'
+            st.rerun()
+    
+    with col3:
+        is_last = st.session_state.q_index >= len(questions) - 1
+        
+        if st.button("Next ➡️" if not is_last else "Complete ✅", type="primary", use_container_width=True):
+            if choice:
+                key = f"{st.session_state.current_section}_{st.session_state.q_index}"
+                if key not in st.session_state.answers:
+                    if choice == q['answer']:
+                        st.session_state.scores[st.session_state.current_section] += 1
+                    st.session_state.answers[key] = choice
+                
+                if is_last:
+                    st.session_state.page = 'section_select'
+                else:
+                    st.session_state.q_index += 1
+                st.rerun()
+            else:
+                st.error("Please select an answer")
 
-# --- 🏆 FINISH SCREEN ---
-elif st.session_state.step == 'finish':
-    st.balloons()
+# Results Page
+elif st.session_state.page == 'results':
+    st.title("📊 Quiz Results")
+    st.divider()
     
-    total_q = len(mcq_questions) + len(pictorial_questions) + len(crossword_questions)
-    total_score = sum(st.session_state.scores.values())
-    percentage = (total_score / total_q) * 100
+    total = sum(st.session_state.scores.values())
+    percentage = (total / 30) * 100
     
-    st.markdown('<div class="main-card">', unsafe_allow_html=True)
-    st.markdown('<h1 class="quiz-title">🎉 Quiz Complete!</h1>', unsafe_allow_html=True)
+    st.subheader(f"Hello, {st.session_state.name}!")
+    col1, col2, col3 = st.columns([1, 2, 1])
     
-    # Score Display
-    if percentage >= 80:
-        emoji, message = "🏆", "Outstanding Performance!"
-    elif percentage >= 60:
-        emoji, message = "🌟", "Great Job!"
-    elif percentage >= 40:
-        emoji, message = "👍", "Good Effort!"
-    else:
-        emoji, message = "💪", "Keep Learning!"
+    with col2:
+        st.metric("Total Score", f"{total}/30")
+        st.metric("Percentage", f"{percentage:.1f}%")
+        
+        if percentage >= 80:
+            st.success("🏆 Excellent!")
+        elif percentage >= 60:
+            st.info("⭐ Good Job!")
+        else:
+            st.warning("📚 Keep Learning!")
     
-    st.markdown(f"""
-    <div class="score-card">
-        <div style="font-size: 3rem;">{emoji}</div>
-        <div class="score-big">{percentage:.0f}%</div>
-        <div style="font-size: 1.5rem; margin: 0.5rem 0;">{total_score} / {total_q}</div>
-        <div style="font-size: 1.2rem; opacity: 0.9;">{message}</div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.divider()
+    st.subheader("Section Breakdown")
     
-    # Section Breakdown
-    st.markdown("### 📊 Section Breakdown")
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        mcq_pct = (st.session_state.scores['mcq'] / len(mcq_questions)) * 100
-        st.markdown(f"""
-        <div style="background: linear-gradient(135deg, #11998e, #38ef7d); padding: 1rem; border-radius: 12px; text-align: center; color: white;">
-            <div style="font-size: 0.9rem;">🏥 AthenaHealth</div>
-            <div style="font-size: 1.8rem; font-weight: 700;">{st.session_state.scores['mcq']}/{len(mcq_questions)}</div>
-            <div style="font-size: 0.8rem;">{mcq_pct:.0f}%</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.write("**📝 MCQ**")
+        score = st.session_state.scores['mcq']
+        st.metric("Score", f"{score}/10")
+        st.progress(score / 10)
     
     with col2:
-        pic_pct = (st.session_state.scores['pictorial'] / len(pictorial_questions)) * 100
-        st.markdown(f"""
-        <div style="background: linear-gradient(135deg, #ee0979, #ff6a00); padding: 1rem; border-radius: 12px; text-align: center; color: white;">
-            <div style="font-size: 0.9rem;">🎨 Pictorial</div>
-            <div style="font-size: 1.8rem; font-weight: 700;">{st.session_state.scores['pictorial']}/{len(pictorial_questions)}</div>
-            <div style="font-size: 0.8rem;">{pic_pct:.0f}%</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.write("**🎨 Pictorial**")
+        score = st.session_state.scores['pictorial']
+        st.metric("Score", f"{score}/10")
+        st.progress(score / 10)
     
     with col3:
-        cross_pct = (st.session_state.scores['crossword'] / len(crossword_questions)) * 100
-        st.markdown(f"""
-        <div style="background: linear-gradient(135deg, #4776E6, #8E54E9); padding: 1rem; border-radius: 12px; text-align: center; color: white;">
-            <div style="font-size: 0.9rem;">🧩 Crossword</div>
-            <div style="font-size: 1.8rem; font-weight: 700;">{st.session_state.scores['crossword']}/{len(crossword_questions)}</div>
-            <div style="font-size: 0.8rem;">{cross_pct:.0f}%</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.write("**🧩 Crossword**")
+        score = st.session_state.scores['crossword']
+        st.metric("Score", f"{score}/10")
+        st.progress(score / 10)
     
-    st.markdown(f"""
-    <div style="text-align: center; margin-top: 2rem; padding: 1rem; background: #f7fafc; border-radius: 12px;">
-        <p style="color: #4a5568;">Thanks for playing, <b>{st.session_state.get('name', st.session_state.email)}</b>! 🙌</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        if st.button("🔄 Play Again", use_container_width=True):
-            st.session_state.clear()
-            st.rerun()
-    
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.divider()
+    if st.button("🔄 New Quiz", type="primary", use_container_width=True):
+        for key in list(st.session_state.keys()):
+            del st.session_state[key]
+        st.rerun()
