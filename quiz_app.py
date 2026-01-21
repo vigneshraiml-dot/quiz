@@ -1,5 +1,7 @@
 import streamlit as st
 import time
+import base64
+from pathlib import Path
 
 # --- ⚙️ CONFIGURATION ---
 QUIZ_TITLE = "AthenaHealth & AI Quiz"
@@ -99,174 +101,75 @@ crossword_questions = [
      "options": ["DEEP", "WIDE", "HUGE", "LONG"], "answer": "DEEP", "category": "down"},
 ]
 
-# --- 🎨 CUSTOM CSS ---
-st.set_page_config(page_title="Quiz Round 1", page_icon="🧩", layout="centered")
+# --- CROSSWORD SVG ---
+CROSSWORD_SVG = """
+<svg width="600" height="450" xmlns="http://www.w3.org/2000/svg">
+  <rect width="100%" height="100%" fill="#f9f9f9"/>
+  
+  <g transform="translate(20, 180)"> <rect x="0" y="0" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
+    <text x="5" y="15" font-family="Arial" font-size="12">3</text>
+    <rect x="40" y="0" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
+    <rect x="80" y="0" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
+    <rect x="120" y="0" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
+    <rect x="160" y="0" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
+    <rect x="200" y="0" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
+  </g>
+  <rect x="20" y="60" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
+  <text x="25" y="75" font-family="Arial" font-size="12">4</text>
+  <rect x="60" y="60" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
+  <rect x="100" y="60" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
+  <rect x="140" y="60" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
+  <rect x="180" y="60" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
+  <rect x="220" y="60" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
+  <rect x="100" y="20" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
+  <text x="105" y="35" font-family="Arial" font-size="12">5</text>
+  <rect x="100" y="100" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
+  <rect x="100" y="140" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
+  <rect x="60" y="100" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
+  <text x="65" y="115" font-family="Arial" font-size="12">1</text>
+  <rect x="60" y="140" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
+  <rect x="60" y="220" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
+  <rect x="60" y="260" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
+  <rect x="60" y="300" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
+  <rect x="60" y="340" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
+  <rect x="260" y="140" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
+  <text x="265" y="155" font-family="Arial" font-size="12">9</text>
+  <rect x="260" y="220" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
+  <rect x="260" y="260" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
+  <rect x="260" y="300" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
+  <rect x="260" y="340" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
+  <rect x="140" y="220" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
+  <text x="145" y="235" font-family="Arial" font-size="12">8</text>
+  <rect x="180" y="220" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
+  <rect x="220" y="220" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
+  <rect x="220" y="300" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
+  <text x="225" y="315" font-family="Arial" font-size="12">7</text>
+  <rect x="300" y="300" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
+  <rect x="340" y="300" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
+  <rect x="380" y="300" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
+  <rect x="340" y="140" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
+  <text x="345" y="155" font-family="Arial" font-size="12">6/10</text>
+  <rect x="340" y="220" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
+  <rect x="340" y="260" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
+  <rect x="380" y="140" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
+  <rect x="420" y="140" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
+  <rect x="460" y="140" width="40" height="40" stroke="black" fill="white" stroke-width="2"/>
+</svg>
+"""
 
-st.markdown("""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
-
-* { font-family: 'Poppins', sans-serif; }
-
-.stApp {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    min-height: 100vh;
-}
-
-.main-card {
-    background: rgba(255,255,255,0.95);
-    border-radius: 24px;
-    padding: 2rem;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-    animation: slideUp 0.5s ease-out;
-}
-
-@keyframes slideUp {
-    from { opacity: 0; transform: translateY(30px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-.quiz-title {
-    font-size: 2.5rem;
-    font-weight: 700;
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    text-align: center;
-    margin-bottom: 1rem;
-    animation: fadeIn 0.8s ease-out;
-}
-
-.section-badge {
-    display: inline-block;
-    padding: 0.5rem 1.5rem;
-    border-radius: 50px;
-    font-weight: 600;
-    font-size: 0.9rem;
-    margin: 0.5rem;
-    animation: pulse 2s infinite;
-}
-
-.badge-mcq { background: linear-gradient(135deg, #11998e, #38ef7d); color: white; }
-.badge-pictorial { background: linear-gradient(135deg, #ee0979, #ff6a00); color: white; }
-.badge-crossword { background: linear-gradient(135deg, #4776E6, #8E54E9); color: white; }
-
-.question-box {
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-    border-radius: 16px;
-    padding: 1.5rem;
-    margin: 1rem 0;
-    border-left: 5px solid #667eea;
-    animation: slideUp 0.4s ease-out;
-}
-
-.question-text {
-    font-size: 1.2rem;
-    font-weight: 500;
-    color: #2d3748;
-    line-height: 1.6;
-}
-
-.timer-critical { color: #e53e3e !important; animation: pulse 0.5s infinite; }
-
-.score-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 20px;
-    padding: 2rem;
-    text-align: center;
-    color: white;
-    margin: 1rem 0;
-}
-
-.score-big {
-    font-size: 4rem;
-    font-weight: 700;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-}
-
-.progress-section {
-    display: flex;
-    justify-content: center;
-    gap: 1rem;
-    margin: 1rem 0;
-    flex-wrap: wrap;
-}
-
-.section-progress {
-    padding: 0.8rem 1.2rem;
-    border-radius: 12px;
-    font-size: 0.85rem;
-    font-weight: 500;
-}
-
-.stRadio > div { gap: 0.5rem; }
-.stRadio label {
-    background: white !important;
-    border: 2px solid #e2e8f0 !important;
-    border-radius: 12px !important;
-    padding: 1rem 1.2rem !important;
-    margin: 0.3rem 0 !important;
-    transition: all 0.3s ease !important;
-    cursor: pointer !important;
-}
-.stRadio label:hover {
-    border-color: #667eea !important;
-    background: #f7fafc !important;
-    transform: translateX(5px);
-}
-
-.stButton > button {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-    color: white !important;
-    border: none !important;
-    border-radius: 12px !important;
-    padding: 0.8rem 2rem !important;
-    font-weight: 600 !important;
-    font-size: 1rem !important;
-    transition: all 0.3s ease !important;
-    width: 100%;
-}
-.stButton > button:hover {
-    transform: translateY(-2px) !important;
-    box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4) !important;
-}
-
-.hint-box {
-    background: #fffbeb;
-    border: 1px solid #fbbf24;
-    border-radius: 12px;
-    padding: 1rem;
-    margin-top: 1rem;
-    font-size: 0.9rem;
-    color: #92400e;
-}
-
-div[data-testid="stMetricValue"] { 
-    font-size: 1.8rem !important; 
-    font-weight: 700 !important;
-}
-</style>
-""", unsafe_allow_html=True)
+# --- PAGE CONFIG ---
+st.set_page_config(page_title=QUIZ_TITLE, page_icon="📚", layout="wide")
 
 # --- SESSION STATE ---
 def init_session():
-    if 'step' not in st.session_state: st.session_state.step = 'login'
+    if 'page' not in st.session_state: st.session_state.page = 'home'
     if 'scores' not in st.session_state: st.session_state.scores = {'mcq': 0, 'pictorial': 0, 'crossword': 0}
     if 'q_index' not in st.session_state: st.session_state.q_index = 0
-    if 'current_section' not in st.session_state: st.session_state.current_section = 'mcq'
+    if 'current_section' not in st.session_state: st.session_state.current_section = None
     if 'start_time' not in st.session_state: st.session_state.start_time = 0
     if 'answers' not in st.session_state: st.session_state.answers = {}
-    if 'show_hint' not in st.session_state: st.session_state.show_hint = False
+    if 'name' not in st.session_state: st.session_state.name = ""
+    if 'email' not in st.session_state: st.session_state.email = ""
 
 init_session()
 
